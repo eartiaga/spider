@@ -22,19 +22,21 @@ RUN apk update && \
     curl "https://spideroak-releases.s3.us-east-2.amazonaws.com/SpiderOakONE-${SPIDEROAK_VERSION}-slack_tar_x64.tgz" -o /app/SpiderOakONE.tgz && \
     cd / && \
     tar xvzf /app/SpiderOakONE.tgz && \
-    adduser --system --disabled-password --gecos 'SpiderOak ONE' --home "${SPIDEROAK_HOME}" -u "${SPIDEROAK_UID}" "${SPIDEROAK_USER}" && \
     mkdir -p "${SPIDEROAK_HOME}" && \
     mkdir -p "${SPIDEROAK_HOME}/.config" && \
-    chmod -R 0775 "${SPIDEROAK_HOME}" && \
     mkdir -p "${SPIDEROAK_BACKUPDIR}" && \
     mkdir -p "${SPIDEROAK_STATEDIR}" && \
-    ln -s "${SPIDEROAK_STATEDIR}" "${SPIDEROAK_HOME}/.config/SpiderOakONE"
+    ln -s "${SPIDEROAK_STATEDIR}" "${SPIDEROAK_HOME}/.config/SpiderOakONE" && \
+    addgroup -g "${SPIDEROAK_GID}" "${SPIDEROAK_GROUP}" && \
+    adduser -h "${SPIDEROAK_HOME}" -u "${SPIDEROAK_UID}" -G "${SPIDEROAK_GROUP}" -D "${SPIDEROAK_USER}" && \
+    chmod -R 0775 "${SPIDEROAK_HOME}" && \
+    chown -R "${SPIDEROAK_USER}.${SPIDEROAK_GROUP}" "${SPIDEROAK_HOME}"
 
 ENV SPIDEROAK_DEVICE_NAME=""
 ENV SPIDEROAK_REINSTALL="false"
 ENV SPIDEROAK_BACKUPDIR="${SPIDEROAK_BACKUPDIR}"
 ENV SPIDEROAK_STATEDIR="${SPIDEROAK_STATEDIR}"
-ENV HOME="{SPIDEROAK_HOME}"
+ENV HOME="${SPIDEROAK_HOME}"
 COPY ./setup.sh /app/setup
 COPY ./info.sh /app/info
 COPY ./select.sh /app/select
