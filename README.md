@@ -185,7 +185,7 @@ the `spider_one` service. Before doing that, you need to set up the
 configuration. You can do it with the following command:
 
 ```bash
-docker-compose run one /app/setup
+docker-compose run --rm one /app/setup
 ```
 
 Note that the command above may take a loooong time (expect several minutes),
@@ -198,7 +198,7 @@ You can validate that the set-up finished correctly and check your account
 information running the following command:
 
 ```bash
-docker-compose run one /app/info
+docker-compose run --rm one /app/info
 ```
 
 Note that the command will not work properly if the SpiderOak service is
@@ -249,7 +249,7 @@ With the service down, you can execute the following command to see which
 is the current backup selection:
 
 ```bash
-docker-compose run one /app/select
+docker-compose run --rm one /app/select
 ```
 
 You can use the same command with arguments to include and exclude files
@@ -267,7 +267,7 @@ For example, with the default configuration, to include the mounted host
 execute the following command:
 
 ```bash
-docker-compose run one /app/select Dir:/BACKUP/etc/systemd ExcludeDir:/BACKUP/etc/systemd/system
+docker-compose run --rm one /app/select Dir:/BACKUP/etc/systemd ExcludeDir:/BACKUP/etc/systemd/system
 ```
 
 You can execute commands like the above any time you want to add a new
@@ -275,13 +275,13 @@ inclusion or exclusion. For example, to add the host mounted `/etc/rc.local`
 file, you can execute the following command:
 
 ```bash
-docker-compose run one /app/select File:/BACKUP/etc/rc.local
+docker-compose run --rm one /app/select File:/BACKUP/etc/rc.local
 ```
 
 You can reset your selections with the following command:
 
 ```bash
-docker-compose run one /app/select --reset
+docker-compose run --rm one /app/select --reset
 ```
 
 ## Running the service
@@ -291,7 +291,7 @@ from the directory with the `docker-compose.yaml` file using the following
 command:
 
 ```bash
-docker-compose up
+docker-compose up --detach
 ```
 
 And you can stop the service with:
@@ -316,6 +316,6 @@ since SpiderOak usually does not support multiple application instances,
 and running several commands at the same time may mess up the state.
 
 ```bash
-docker-compose run one -c "SpiderOakONE --help"
+docker-compose run --rm one -c "SpiderOakONE --help"
 ```
 
