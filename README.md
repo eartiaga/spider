@@ -82,8 +82,8 @@ can create them with the following commands.
 For the credentials, you can use:
 
 ```bash
-echo -n 'YOUR_SPIDEROAK_USER' | base64 -e > ${HOME}/spider/secrets/spideroak_user.conf
-echo -n 'YOUR_SPIDEROAK_PASSWORD' | base64 -e > ${HOME}/spider/secrets/spideroak_password.conf
+echo -n 'YOUR_SPIDEROAK_USER' | base64 > ${HOME}/spider/secrets/spideroak_user.conf
+echo -n 'YOUR_SPIDEROAK_PASSWORD' | base64 > ${HOME}/spider/secrets/spideroak_password.conf
 ```
 
 For the device name, you can create the file using:
@@ -188,9 +188,10 @@ configuration. You can do it with the following command:
 docker-compose run --rm one /app/setup
 ```
 
-Note that the command above may take a loooong time (expect several minutes),
-while it synchronizes with your SpiderOak account. The service will end once
-the work is done (interrupting it is not recommended).
+Note that the command above may take a loooong time (expect several minutes or
+hours, if you have several devices already registered), while it synchronizes
+with your SpiderOak account. The service will end once the work is done
+(interrupting it is not recommended).
 
 ## Checking status
 
@@ -319,3 +320,100 @@ and running several commands at the same time may mess up the state.
 docker-compose run --rm one -c "SpiderOakONE --help"
 ```
 
+## Running on Synology
+
+One of the purposes of the spider container is to run it directly
+inside a NAS Station like Synology's
+[DS Plus Series](https://www.synology.com/products?product_line=ds_plus).
+However, some additional tweaks are required. The following instructions
+may vary depending on the brand, model and version of your NAS system.
+
+Assuming you are logged into your Synology NAS via web as an administrator
+user, you need to go to the `Package Center` and make sure the `Docker`
+package is installed. This will automatically create a shared folder called
+`docker` and install the `docker` and `docker-compose` commands in the system.
+
+In the `Control Panel`, go to the `User & Group` tab and create a group for
+backup application purposes (e.g. `backup`). Give this group read-only
+permissions on the shared folders you want to back up (via `Edit/Permissions`
+button).
+
+Now, create a user to run the spider container (e.g. `spider`). Assign this
+newly created user to the group `backup`.
+
+Once the user and group are created, upload the contents of this repository
+to your Synology NAS system using an administrator user. If ssh is enabled,
+you can upload the contents via `sftp`. I recommend to create a folder inside
+the `docker` shared folder (e.g. `/path/to/docker_folder/spider`).
+
+Once uploaded, connect to your Synology NAS system via ssh using an
+administrator user. There, you need to create the folders for config, secrets
+and state. I recommend creating a folder inside the `docker` shared folder
+called `_volumes` for this purpose. For example:
+
+```bash
+mkdir /path/to/docker_folder/_volumes/spider/configs
+mkdir /path/to/docker_folder/_volumes/spider/secrets
+mkdir /path/to/docker_folder/_volumes/spider/state
+chgrp backup /path/to/docker_folder/_volumes/spider/state
+chmod -R g+w /path/to/docker_folder/_volumes/spider/state
+```
+
+Notice that we need to change the group and permissions of the persistent
+state directory, since it must be writable by the container user.
+
+Also, create and populate the `spideroak_user.conf`, `spideroak_password.conf`
+and `spideroak_device.conf` files as instructed in the previous sections,
+or be ready to set the corresponding environment variables when invoking
+the `docker-compose` commands.
+
+Get the uid and gid of the `spider` user and `backup` group, as you will
+need them later:
+
+```bash
+id -u spider
+```
+
+```bash
+grep '^backup:' /etc/group | cut -d : -f 3
+```
+
+Now edit your `docker-compose.yaml` file to adjust the settings and add the
+volume mappings for the shared folders you want to backup. Also adjust
+the `SPIDEROAK_UID` and `SPIDEROAK_GID` settings.
+
+Finally, create your `.env` file for the environment variables. It should
+look similar to the following:
+
+```
+ACCOUNT_CONFIGDIR="/path/to/docker_folder/_volumes/spider/configs"
+ACCOUNT_SECRETDIR="/path/to/docker_folder/_volumes/spider/secrets"
+ACCOUNT_STATEDIR="/path/to/docker_folder/_volumes/spider/state"
+SPIDEROAK_UID="spider_user_uid"
+SPIDEROAK_GID="backup_group_gid"
+```
+
+Now you are ready to build, setup and start the system. The Synology NAS
+system may restrict docker handling to the `root` user (not any administrator).
+So you may have to become `root` by issuing the following command and
+entering your administrator user password when requested:
+
+```bash
+sudo -i
+```
+
+As `root`, navigate to the folder where the `docker-compose.yaml` and `.env`
+files reside, and build the image with:
+
+```bash
+docker-compose build
+```
+
+Once the image is build, you should be able to see it via the `docker`
+plugin, in the `Image` tab. You can set up the device, configure your
+selections and start the services (using the `root` user) as instructed
+in the initial sections of this guide.
+
+While the container is running, you should be able to check its status
+via the `docker` plugin, by clicking in the `Details` option in the
+`Container` tab.
