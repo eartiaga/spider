@@ -1,0 +1,54 @@
+version: "3"
+services:
+  one:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Alpine version
+        BASE_IMAGE_VERSION: "3.17"
+        # SpiderOak ONE version
+        SPIDEROAK_VERSION: "7.5.0"
+        # Container user id (should match your local user)
+        SPIDEROAK_UID: "${SPIDEROAK_UID:-1001}"
+        # Container group id (should match your local user)
+        SPIDEROAK_GID: "${SPIDEROAK_GID:-1001}"
+        # Mount point for writable configuration inside the container
+        SPIDEROAK_STATEDIR: &config "/STATE"
+        # Mount point for read-only backup root inside the container
+        # You should mount the volumes to backup under this folder
+        SPIDEROAK_BACKUPDIR: "/BACKUP"
+    restart: unless-stopped
+    user: "${SPIDEROAK_UID:-1001}:${SPIDEROAK_GID:-1001}"
+    volumes:
+      # Read-only configuration
+      # Create with "echo -n 'device' > ${ACCOUNT_CONFIGDIR}/spideroak_device.conf"
+      - type: bind
+        source: "${ACCOUNT_CONFIGDIR:?Configuration directory not set}"
+        target: "/docker/configs"
+        read_only: true
+      # Read-only base64 secrets
+      # Create with "echo -n 'user' | base64 -e > ${ACCOUNT_SECRETDIR}/spideroak_user.conf"
+      # Create with "echo -n 'pass' | base64 -e > ${ACCOUNT_SECRETDIR}/spideroak_password.conf"
+      - type: bind
+        source: "${ACCOUNT_SECRETDIR:?Secrets directory not set}"
+        target: "/docker/secrets"
+        read_only: true
+      # Persistent configuration
+      - type: bind
+        source: "${BACKUP_STATEDIR:?Writable state directory not set}"
+        target: *config
+      # List of volumes accessible for back up
+      # Targets should be mounted on 
+      - type: bind
+        source: "/etc"
+        target: "/BACKUP/etc"
+        read_only: true
+        bind:
+          propagation: "rslave"
+      - type: bind
+        source: "/usr/local/bin"
+        target: "/BACKUP/usr/local/bin"
+        read_only: true
+        bind:
+          propagation: "rslave"
