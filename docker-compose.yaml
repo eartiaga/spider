@@ -34,6 +34,11 @@ services:
         source: "${ACCOUNT_SECRETDIR:?Secrets directory not set}"
         target: "/docker/secrets"
         read_only: true
+      # Read-only preferences directory
+      - type: bind
+        source: "${BACKUP_PREFERENCES:?Preferences directory not set}"
+        target: "/etc/SpiderOakONE"
+        read_only: true
       # Persistent configuration
       - type: bind
         source: "${BACKUP_STATEDIR:?Writable state directory not set}"

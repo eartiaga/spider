@@ -50,8 +50,8 @@ if you are familiar with them.
 ## Preparation
 
 Before starting, you need to prepare some files with the basic configuration.
-You will need three directories to store the read-only configuration, the
-secrets and the writable persistent configuration and state.
+You will need four directories to store the read-only configuration, the
+secrets, the preferences, and the writable persistent configuration and state.
 
 Let's assume we will have them inside a directory called `spider` in our
 home. We can create them with the following commands:
@@ -60,6 +60,7 @@ home. We can create them with the following commands:
 mkdir "$HOME/spider"
 mkdir "$HOME/spider/configs"
 mkdir "$HOME/spider/secrets"
+mkdir "$HOME/spider/preferences"
 mkdir "$HOME/spider/state"
 ```
 
@@ -92,6 +93,10 @@ For the device name, you can create the file using:
 echo -n 'YOUR_DEVICE_NAME' > ${HOME}/spider/configs/spideroak_device.conf
 ```
 
+Note that you cannot set the preferences using environment variables, but
+you can just omit the creation of the `Preferences` file if you want to use
+the defaults (see next section for the contents of `Preferences`).
+
 Last but not least, you need to know which user and group to use to run the
 container. The chosen user needs to have at least read/traverse permission
 for the files and directories you want to back up. If you are using the
@@ -110,6 +115,37 @@ You can obtain your user's uid and gid with the following commands:
 id -u
 id -g
 ```
+
+## Preferences
+
+The SpiderOak ONE application allows you to set certain preferences via the
+GUI, which is not very convenient for a headless execution in a container.
+Nevertheless, though officially unsupported, it is also possible to set
+them via a JSON file named `/etc/SpiderOakONE/Preferences`. The documentation
+on how to handle this file can be found in the following link:
+
+* [Advanced Application Management in SpiderOak Groups and Enterprise](https://spideroak.support/hc/en-us/articles/115001893023)
+
+While reading that text, you will have to change every instance of
+`SpiderOak Groups` (with a space) to `SpiderOakONE` (without a space).
+
+The preferences file could look like the following:
+
+```json
+{
+  "Wildcards": "Wildcards to match against files to not back up (e.g.: *.bck, *.tmp)",
+  "FolderWildcards": "Wildcards for folders to not back up (e.g.: Windows)",
+  "LimitBandwidthEnabled": true|false,
+  "LimitUploadBucket": "Maximum upload in kilobytes per second (e.g: 75)",
+  "FullScheduleEnable": false,
+  "FullScanInterval": "Set the backup scan interval (e.g.: Automatic)",
+  "EnableAutomaticScan": true
+}
+```
+
+The content above, changing the description of the values into actual values,
+needs to be placed in a file named `Preferences` inside the host directory
+created to keep them (see previous section).
 
 ## Environment file
 
@@ -130,6 +166,9 @@ may want to set up are:
   `spideroak_user.conf` and `spideroak_password.conf` files with the
   SpiderOak credentials in base64-encoding. Compulsory, even if
   empty.
+* _BACKUP_PREFERENCES_: The host directory that may contain the `Preferences`
+  file with the SpiderOak ONE preferences. Note that the file may not
+  exist, but the directory is compulsory, even if empty.
 * _BACKUP_STATEDIR_: The host directory to store the SpiderOak persistent
   configuration and state. Compulsory, must be writable by the container
   user.
@@ -141,6 +180,7 @@ variables.
 ```
 ACCOUNT_CONFIGDIR="${HOME}/spider/configs"
 ACCOUNT_SECRETDIR="${HOME}/spider/secrets"
+BACKUP_PREFERENCES="${HOME}/spider/preferences"
 BACKUP_STATEDIR="${HOME}/spider/state"
 SPIDEROAK_UID="1001"
 SPIDEROAK_GID="1001"
@@ -354,6 +394,7 @@ called `_volumes` for this purpose. For example:
 ```bash
 mkdir /path/to/docker_folder/_volumes/spider/configs
 mkdir /path/to/docker_folder/_volumes/spider/secrets
+mkdir /path/to/docker_folder/_volumes/spider/preferences
 mkdir /path/to/docker_folder/_volumes/spider/state
 chgrp backup /path/to/docker_folder/_volumes/spider/state
 chmod -R g+w /path/to/docker_folder/_volumes/spider/state
@@ -388,9 +429,23 @@ look similar to the following:
 ```
 ACCOUNT_CONFIGDIR="/path/to/docker_folder/_volumes/spider/configs"
 ACCOUNT_SECRETDIR="/path/to/docker_folder/_volumes/spider/secrets"
-ACCOUNT_STATEDIR="/path/to/docker_folder/_volumes/spider/state"
+BACKUP_PREFERENCES="/path/to/docker_folder/_volumes/spider/state"
+BACKUP_STATEDIR="/path/to/docker_folder/_volumes/spider/state"
 SPIDEROAK_UID="spider_user_uid"
 SPIDEROAK_GID="backup_group_gid"
+```
+
+The following is a possible configuration for the `Preferences` file
+(please adapt it to your needs):
+
+```json
+{
+  "FolderWildcards": "@eaDir, @tmp",
+  "LimitBandwidthEnabled": true,
+  "LimitUploadBucket": "75",
+  "FullScanInterval": "Automatic",
+  "EnableAutomaticScan": true
+}
 ```
 
 Now you are ready to build, setup and start the system. The Synology NAS
