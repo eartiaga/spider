@@ -147,6 +147,20 @@ The content above, changing the description of the values into actual values,
 needs to be placed in a file named `Preferences` inside the host directory
 created to keep them (see previous section).
 
+Additionally, it is possible to create a `BackupSet` file in the same directory
+with the selection of files and directories to backup. For example:
+
+```json
+{
+  "atleast": {
+    "selected": [
+      "/first/path/to/backup",
+      "/second/path/to/backup"
+    ]
+  }
+}
+```
+
 ## Environment file
 
 For convenience, it is useful to create an environment file in the same
@@ -440,10 +454,16 @@ The following is a possible configuration for the `Preferences` file
 
 ```json
 {
-  "FolderWildcards": "@eaDir, @tmp",
+  "FolderWildcards": "@eaDir, @tmp, .DS_Store",
   "LimitBandwidthEnabled": true,
   "LimitUploadBucket": "75",
   "FullScanInterval": "Automatic",
+  "FullScheduleEnable": true,
+  "FullScheduleDay": "Monday",
+  "FullScheduleHour": "10",
+  "FullScheduleAMPM": "PM",
+  "SyncScheduleEnable": false,
+  "ShareScheduleEnable": false,
   "EnableAutomaticScan": true
 }
 ```
