@@ -20,6 +20,7 @@ services:
         SPIDEROAK_BACKUPDIR: "/BACKUP"
     restart: unless-stopped
     user: "${SPIDEROAK_UID:-1001}:${SPIDEROAK_GID:-1001}"
+    privileged: true
     volumes:
       # Read-only configuration
       # Create with "echo -n 'device' > ${ACCOUNT_CONFIGDIR}/spideroak_device.conf"
