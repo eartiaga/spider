@@ -21,6 +21,13 @@ the `/docker/configs` directory in the container (similar to using
 docker `configs` but, again, without requiring docker swarm).
 Both credentials and device name are read-only inside the container.
 
+The `/docker/configs` directory may also contain a file with anacron
+configuration parameters. The anacron configuration is useful when
+the SpiderOak ONE client is not able to receive change notifications
+from the host file system. In that case, anacron can be used to
+re-start the SpiderOak ONE client and force a full scan of the
+directories to back up.
+
 The writable persistent configuration and state for SpiderOak ONE is
 mapped into the `/STATE` directory inside the container, and it should
 be mapped to a persistent volume or host directory in the host.
@@ -116,6 +123,41 @@ id -u
 id -g
 ```
 
+### Anacron configuration
+
+In case the SpiderOak ONE is not able to receive change notifications from
+the host file system (e.g. some container engines/configurations do not
+work properly with i-notify), you may use the anacron set-up to run the
+SpiderOak ONE client in batch mode and re-start it again at regular
+intervals, forcing a full re-scan of the directories to back-up.
+
+In order to do that, you need to create a file named
+`spideroak_anacron.conf` with the following environment variables defined:
+
+* _SPIDEROAK_ANACRON_: set the value to `true` if you want to run in
+  anacron mode.
+* _SPIDEROAK_ANACRON_START_HOURS_RANGE_: if defined, indicate at which
+  hours during the day is the client allowed to start (e.g. "19-23").
+* _SPIDEROAK_ANACRON_PERIOD_: The period in days between consecutive
+  scans (defaults to 1).
+* _SPIDEROAK_ANACRON_DELAY_: The minimum delay in minutes after the last
+  execution (defaults to 60).
+* _SPIDEROAK_ANACRON_RANDOM_DELAY_: the maximum number of minutes that the
+  start of the process can be delayed, beyond the fixed delay (defaults to 5).
+
+For example:
+
+```
+SPIDEROAK_ANACRON=true
+SPIDEROAK_ANACRON_START_HOURS_RANGE=1-6
+SPIDEROAK_ANACRON_PERIOD=3
+SPIDEROAK_ANACRON_DELAY=30
+SPIDEROAK_ANACRON_RANDOM_DELAY=5
+```
+
+Note that this file should be in the configurations directory (the same
+where your `spideroak_device.conf` file is).
+
 ## Preferences
 
 The SpiderOak ONE application allows you to set certain preferences via the
@@ -173,6 +215,8 @@ may want to set up are:
   Optional, defaults to `1001`.
 * _SPIDEROAK_GID_: The user group gid that the container should use to run.
   Optional, defaults to `1001`.
+* _SPIDEROAK_USER_: The user name used inside the container, defaults to `spider`.
+* _SPIDEROAK_GROUP_: The group name used inside the container, defaults to `spider`.
 * _ACCOUNT_CONFIGDIR_: The host directory that contains the
   `spideroak_device.conf` file with the device name. Compulsory, even if
   empty.
@@ -492,3 +536,31 @@ in the initial sections of this guide.
 While the container is running, you should be able to check its status
 via the `docker` plugin, by clicking in the `Details` option in the
 `Container` tab.
+
+In some cases, you may find the following error when trying to start the
+container (path and mount point may be different):
+
+```
+Error response from daemon: path /volume1 is mounted on /BACKUP/volume1 but it is not a shared or slave mount
+```
+
+This problem can be solved by executing the following commands from your root
+account in synology:
+
+```bash
+mount --make-shared /volume1/
+systemctl daemon-reload
+```
+
+In order to make it persistent across reboots, you may create a task executing
+the above script every time the synology boots. In order to do so, you may
+follow the next steps:
+
+1. Open the control panel.
+2. Go the `Task Scheduler` tab.
+3. Create a `Triggered Task` with a `User-defined script`.
+4. Set the name for the Task (e.g. `Mount --make-shared`).
+5. Set the trigger `Event` to `Boot-up`.
+6. Set the user to `root`.
+7. In `Task Settings` copy & paste the mount and systemctl commands from above as `User-defined script`.
+8. Click on the `Ok` button to save the task.

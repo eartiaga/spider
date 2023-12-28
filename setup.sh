@@ -11,10 +11,10 @@ trap remove_setup_config EXIT
 SPIDEROAK_ONE="/usr/bin/SpiderOakONE"
 
 if [ -z "$SPIDEROAK_USER" ] && [ -r "/docker/secrets/spideroak_user.conf" ]; then
-    SPIDEROAK_USER="$(cat "/docker/secrets/spideroak_user.conf" | base64 -d)"
+    SPIDEROAK_USER="$(base64 -d < "/docker/secrets/spideroak_user.conf")"
 fi
 if [ -z "$SPIDEROAK_PASSWORD" ] && [ -r "/docker/secrets/spideroak_password.conf" ]; then
-    SPIDEROAK_PASSWORD="$(cat "/docker/secrets/spideroak_password.conf" | base64 -d)"
+    SPIDEROAK_PASSWORD="$(base64 -d < "/docker/secrets/spideroak_password.conf")"
 fi
 if [ -z "$SPIDEROAK_DEVICE" ] && [ -r "/docker/configs/spideroak_device.conf" ]; then
     SPIDEROAK_DEVICE="$(cat "/docker/configs/spideroak_device.conf")"
@@ -37,12 +37,14 @@ echo "Backup mounts:"
 mount | awk '{print $3}' | grep "^$SPIDEROAK_BACKUPDIR"
 
 if [ ! -f "$SPIDEROAK_STATEDIR/local.dat" ]; then
-    echo "{" > "$SETUP_CONF"
-    echo "\"username\":\"${SPIDEROAK_USER}\"," >> "$SETUP_CONF"
-    echo "\"password\":\"${SPIDEROAK_PASSWORD}\"," >> "$SETUP_CONF"
-    echo "\"device_name\":\"${SPIDEROAK_DEVICE}\"," >> "$SETUP_CONF"
-    echo "\"reinstall\":false" >> "$SETUP_CONF"
-    echo "}" >> "$SETUP_CONF"
+    {
+        echo "{"
+        echo "\"username\":\"${SPIDEROAK_USER}\","
+        echo "\"password\":\"${SPIDEROAK_PASSWORD}\","
+        echo "\"device_name\":\"${SPIDEROAK_DEVICE}\","
+        echo "\"reinstall\":false"
+        echo "}"
+    } > "$SETUP_CONF"
     "$SPIDEROAK_ONE" --setup="$SETUP_CONF"
     remove_setup_config
 else

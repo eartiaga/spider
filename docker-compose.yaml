@@ -1,3 +1,4 @@
+---
 version: "3"
 services:
   one:
@@ -6,13 +7,17 @@ services:
       dockerfile: Dockerfile
       args:
         # Alpine version
-        BASE_IMAGE_VERSION: "3.17"
+        BASE_IMAGE_VERSION: "3.18"
         # SpiderOak ONE version
         SPIDEROAK_VERSION: "7.5.0"
         # Container user id (should match your local user)
         SPIDEROAK_UID: "${SPIDEROAK_UID:-1001}"
+        # Container user name
+        SPIDEROAK_USER: "${SPIDEROAK_USER:-spider}"
         # Container group id (should match your local user)
         SPIDEROAK_GID: "${SPIDEROAK_GID:-1001}"
+        # Container group name
+        SPIDEROAK_GROUP: "${SPIDEROAK_GROUP:-spider}"
         # Mount point for writable configuration inside the container
         SPIDEROAK_STATEDIR: &config "/STATE"
         # Mount point for read-only backup root inside the container
@@ -23,14 +28,23 @@ services:
     privileged: true
     volumes:
       # Read-only configuration
-      # Create with "echo -n 'device' > ${ACCOUNT_CONFIGDIR}/spideroak_device.conf"
+      # Create device config with
+      # "echo -n 'device' > ${ACCOUNT_CONFIGDIR}/spideroak_device.conf"
+      # Create anacron config with
+      # "echo -n 'SPIDEROAK_ANACRON=true' > ${ACCOUNT_CONFIGDIR}/spideroak_anacron.conf"
+      # "echo -n 'SPIDEROAK_ANACRON_RANDOM_DELAY=5' >> ${ACCOUNT_CONFIGDIR}/spideroak_anacron.conf"
+      # "echo -n 'SPIDEROAK_ANACRON_START_HOURS_RANGE=2-6' >> ${ACCOUNT_CONFIGDIR}/spideroak_anacron.conf"
+      # "echo -n 'SPIDEROAK_ANACRON_PERIOD=3' >> ${ACCOUNT_CONFIGDIR}/spideroak_anacron.conf"
+      # "echo -n 'SPIDEROAK_ANACRON_DELAY=30' >> ${ACCOUNT_CONFIGDIR}/spideroak_anacron.conf"
       - type: bind
         source: "${ACCOUNT_CONFIGDIR:?Configuration directory not set}"
         target: "/docker/configs"
         read_only: true
       # Read-only base64 secrets
-      # Create with "echo -n 'user' | base64 -e > ${ACCOUNT_SECRETDIR}/spideroak_user.conf"
-      # Create with "echo -n 'pass' | base64 -e > ${ACCOUNT_SECRETDIR}/spideroak_password.conf"
+      # Create user secret with
+      # "echo -n 'user' | base64 -e > ${ACCOUNT_SECRETDIR}/spideroak_user.conf"
+      # Create password secret with
+      # "echo -n 'pass' | base64 -e > ${ACCOUNT_SECRETDIR}/spideroak_password.conf"
       - type: bind
         source: "${ACCOUNT_SECRETDIR:?Secrets directory not set}"
         target: "/docker/secrets"
@@ -45,7 +59,7 @@ services:
         source: "${BACKUP_STATEDIR:?Writable state directory not set}"
         target: *config
       # List of volumes accessible for back up
-      # Targets should be mounted on 
+      # Targets should be mounted on top of $SPIDEROAK_BACKUPDIR
       - type: bind
         source: "/etc"
         target: "/BACKUP/etc"
